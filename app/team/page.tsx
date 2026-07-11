@@ -1,4 +1,5 @@
 import { getTeamMembers } from "@/lib/actions/work-records";
+import { getCurrentUser } from "@/lib/actions/auth";
 import { AddTeamMemberForm } from "@/components/AddTeamMemberForm";
 import { RemoveTeamMemberButton } from "@/components/RemoveTeamMemberButton";
 
@@ -9,7 +10,8 @@ const ROLE_LABELS: Record<string, string> = {
 };
 
 export default async function TeamPage() {
-  const members = await getTeamMembers();
+  const [members, user] = await Promise.all([getTeamMembers(), getCurrentUser()]);
+  const isAdmin = user?.role === "admin";
 
   return (
     <main className="min-h-screen p-6 md:p-10 max-w-3xl mx-auto">
@@ -18,7 +20,7 @@ export default async function TeamPage() {
           <h1 className="text-2xl font-bold tracking-tight">Team Members</h1>
           <p className="text-sm text-neutral-500">Who&apos;s on the team and their role</p>
         </div>
-        <AddTeamMemberForm />
+        {isAdmin && <AddTeamMemberForm />}
       </header>
 
       {members.length === 0 ? (
@@ -37,7 +39,7 @@ export default async function TeamPage() {
                 <span className="text-xs font-medium text-neutral-600 bg-neutral-100 rounded-full px-2.5 py-1">
                   {ROLE_LABELS[member.role] ?? member.role}
                 </span>
-                <RemoveTeamMemberButton id={member.id} name={member.display_name} />
+                {isAdmin && <RemoveTeamMemberButton id={member.id} name={member.display_name} />}
               </div>
             </div>
           ))}

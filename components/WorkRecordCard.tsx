@@ -18,11 +18,13 @@ export function WorkRecordCard({
   assigneeName,
   stalled,
   teamMembers,
+  canWrite,
 }: {
   record: WorkRecord;
   assigneeName: string | null;
   stalled: boolean;
   teamMembers: TeamMember[];
+  canWrite: boolean;
 }) {
   const [isEditing, setIsEditing] = useState(false);
   const overdue = isOverdue(record);
@@ -59,7 +61,7 @@ export function WorkRecordCard({
             </span>
           </div>
         </div>
-        <StatusSelect id={record.id} status={record.status} />
+        <StatusSelect id={record.id} status={record.status} disabled={!canWrite} />
       </div>
 
       {isEditing ? (
@@ -69,14 +71,14 @@ export function WorkRecordCard({
           onCancel={() => setIsEditing(false)}
           onSaved={() => setIsEditing(false)}
         />
-      ) : (
+      ) : canWrite ? (
         <div className="flex items-center justify-between mt-3 pt-3 border-t border-neutral-100">
           <button onClick={() => setIsEditing(true)} className="text-xs text-neutral-600 hover:underline">
             Edit
           </button>
           <DeleteWorkRecordButton id={record.id} title={record.title} />
         </div>
-      )}
+      ) : null}
     </div>
   );
 }

@@ -6,7 +6,29 @@ import type { TeamMemberRole } from "@/lib/types";
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
 
+type SupabaseClient = Awaited<ReturnType<typeof createClient>>;
+
 const ROLES: TeamMemberRole[] = ["viewer", "editor", "admin"];
+
+async function requireAdmin(
+  supabase: SupabaseClient,
+): Promise<{ ok: true; userId: string } | { ok: false; error: string }> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "You need to sign in to do that." };
+
+  const { data: member } = await supabase
+    .from("team_members")
+    .select("role")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (!member || member.role !== "admin") {
+    return { ok: false, error: "Only admins can manage team members." };
+  }
+  return { ok: true, userId: user.id };
+}
 
 export async function addTeamMember(
   _prevState: ActionResult | null,
@@ -21,6 +43,9 @@ export async function addTeamMember(
   const role = (ROLES as string[]).includes(roleRaw) ? (roleRaw as TeamMemberRole) : "editor";
 
   const supabase = await createClient();
+  const auth = await requireAdmin(supabase);
+  if (!auth.ok) return auth;
+
   const { data, error } = await supabase
     .from("team_members")
     .insert({ display_name, email, role })
@@ -36,6 +61,7 @@ export async function addTeamMember(
     action: "insert",
     before_state: null,
     after_state: data,
+    user_id: auth.userId,
   });
 
   revalidatePath("/team");
@@ -45,6 +71,9 @@ export async function addTeamMember(
 
 export async function removeTeamMember(id: string): Promise<ActionResult> {
   const supabase = await createClient();
+  const auth = await requireAdmin(supabase);
+  if (!auth.ok) return auth;
+
   const { data: existing, error: fetchError } = await supabase
     .from("team_members")
     .select("*")
@@ -70,6 +99,7 @@ export async function removeTeamMember(id: string): Promise<ActionResult> {
     action: "delete",
     before_state: existing,
     after_state: null,
+    user_id: auth.userId,
   });
 
   revalidatePath("/team");

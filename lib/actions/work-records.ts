@@ -20,6 +20,7 @@ function parseAssignedTo(value: FormDataEntryValue | null): string | null {
 
 async function writeAuditLog(
   supabase: SupabaseClient,
+  userId: string,
   entry: {
     actor_name: string;
     table_name: string;
@@ -29,7 +30,27 @@ async function writeAuditLog(
     after_state: Record<string, unknown> | null;
   },
 ) {
-  await supabase.from("audit_logs").insert(entry);
+  await supabase.from("audit_logs").insert({ ...entry, user_id: userId });
+}
+
+async function requireEditor(
+  supabase: SupabaseClient,
+): Promise<{ ok: true; userId: string } | { ok: false; error: string }> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "You need to sign in to do that." };
+
+  const { data: member } = await supabase
+    .from("team_members")
+    .select("role")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (!member || (member.role !== "editor" && member.role !== "admin")) {
+    return { ok: false, error: "Viewers can't make changes — ask an admin to upgrade your role." };
+  }
+  return { ok: true, userId: user.id };
 }
 
 export type WorkRecordFilters = {
@@ -119,9 +140,12 @@ export async function createWorkRecord(
   const due_date = parseDueDate(formData.get("due_date"));
 
   const supabase = await createClient();
+  const auth = await requireEditor(supabase);
+  if (!auth.ok) return auth;
+
   const { data, error } = await supabase
     .from("work_records")
-    .insert({ title, description, status, assigned_to, due_date })
+    .insert({ title, description, status, assigned_to, due_date, user_id: auth.userId })
     .select()
     .single();
 
@@ -134,9 +158,10 @@ export async function createWorkRecord(
     actor_name,
     action: "record_created",
     detail: { title: data.title, status: data.status },
+    user_id: auth.userId,
   });
 
-  await writeAuditLog(supabase, {
+  await writeAuditLog(supabase, auth.userId, {
     actor_name,
     table_name: "work_records",
     row_id: data.id,
@@ -155,6 +180,9 @@ export async function updateWorkRecord(
   formData: FormData,
 ): Promise<ActionResult> {
   const supabase = await createClient();
+  const auth = await requireEditor(supabase);
+  if (!auth.ok) return auth;
+
   const { data: existing, error: fetchError } = await supabase
     .from("work_records")
     .select("*")
@@ -188,9 +216,10 @@ export async function updateWorkRecord(
     actor_name,
     action,
     detail: { title: updated.title, from: existing.status, to: updated.status },
+    user_id: auth.userId,
   });
 
-  await writeAuditLog(supabase, {
+  await writeAuditLog(supabase, auth.userId, {
     actor_name,
     table_name: "work_records",
     row_id: id,
@@ -206,6 +235,9 @@ export async function updateWorkRecord(
 export async function updateWorkRecordStatus(id: string, status: string): Promise<ActionResult> {
   if (!isWorkRecordStatus(status)) return { ok: false, error: "Invalid status." };
   const supabase = await createClient();
+  const auth = await requireEditor(supabase);
+  if (!auth.ok) return auth;
+
   const { data: existing, error: fetchError } = await supabase
     .from("work_records")
     .select("*")
@@ -229,9 +261,10 @@ export async function updateWorkRecordStatus(id: string, status: string): Promis
     actor_name,
     action: "status_changed",
     detail: { title: existing.title, from: existing.status, to: updated.status },
+    user_id: auth.userId,
   });
 
-  await writeAuditLog(supabase, {
+  await writeAuditLog(supabase, auth.userId, {
     actor_name,
     table_name: "work_records",
     row_id: id,
@@ -246,6 +279,9 @@ export async function updateWorkRecordStatus(id: string, status: string): Promis
 
 export async function softDeleteWorkRecord(id: string): Promise<ActionResult> {
   const supabase = await createClient();
+  const auth = await requireEditor(supabase);
+  if (!auth.ok) return auth;
+
   const { data: existing, error: fetchError } = await supabase
     .from("work_records")
     .select("*")
@@ -269,9 +305,10 @@ export async function softDeleteWorkRecord(id: string): Promise<ActionResult> {
     actor_name,
     action: "record_deleted",
     detail: { title: existing.title },
+    user_id: auth.userId,
   });
 
-  await writeAuditLog(supabase, {
+  await writeAuditLog(supabase, auth.userId, {
     actor_name,
     table_name: "work_records",
     row_id: id,

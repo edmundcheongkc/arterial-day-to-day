@@ -11,7 +11,15 @@ const STATUS_STYLES: Record<WorkRecordStatus, string> = {
   done: "bg-green-50 text-green-700 border-green-300",
 };
 
-export function StatusSelect({ id, status }: { id: string; status: WorkRecordStatus }) {
+export function StatusSelect({
+  id,
+  status,
+  disabled = false,
+}: {
+  id: string;
+  status: WorkRecordStatus;
+  disabled?: boolean;
+}) {
   const [value, setValue] = useState(status);
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -20,7 +28,7 @@ export function StatusSelect({ id, status }: { id: string; status: WorkRecordSta
     <div className="flex flex-col gap-1">
       <select
         value={value}
-        disabled={isPending}
+        disabled={disabled || isPending}
         onChange={(e) => {
           const next = e.target.value as WorkRecordStatus;
           const prev = value;

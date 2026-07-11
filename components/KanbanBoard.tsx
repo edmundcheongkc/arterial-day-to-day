@@ -13,10 +13,12 @@ export function KanbanBoard({
   records,
   teamMembers,
   lastActivityMap,
+  canWrite,
 }: {
   records: WorkRecord[];
   teamMembers: TeamMember[];
   lastActivityMap: Map<string, string>;
+  canWrite: boolean;
 }) {
   const memberById = new Map(teamMembers.map((m) => [m.id, m.display_name]));
   const sorted = sortRecords(records, lastActivityMap);
@@ -54,6 +56,7 @@ export function KanbanBoard({
                     assigneeName={record.assigned_to ? memberById.get(record.assigned_to) ?? null : null}
                     stalled={isStalled(record, lastActivityMap.get(record.id) ?? record.created_at)}
                     teamMembers={teamMembers}
+                    canWrite={canWrite}
                   />
                 ))}
               </div>
