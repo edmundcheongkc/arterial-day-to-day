@@ -1,33 +1,33 @@
 # Product Requirements — Arterial Day-to-Day
 
 ## Problem
-The team tracks recurring operational work across spreadsheets and chat. Records fall through gaps, statuses are stale, and nobody has a single up-to-date view.
+The team tracks recurring operational work (records, statuses, owners) across disconnected spreadsheets and chat threads. There is no single shared view, so things slip, status is stale, and handoffs break.
 
 ## Target User
-Internal team members and their manager/lead who need to log work and see everyone's progress daily.
+Internal team members (3–15 people) who run the same operational workflow every day — logging work, updating status, and handing off to colleagues.
 
 ## Core Objects
-- **WorkItem** — the unit of work logged (title, status, assignee, due date, notes)
-- **Team** — the group sharing the dashboard
-- **Member** — a person on the team with a role (viewer / contributor / lead)
-- **ActivityLog** — every status change or note update, timestamped
+- **Work Record** — the unit of work: title, description, status, assignee, due date
+- **Team Member** — person who owns or works records
+- **Activity** — timestamped log entry for every state change
+- **Audit Log** — immutable write history for every table
 
 ## MVP Must-Haves
-- [ ] Create, edit, and delete work items
-- [ ] Set and update status per item (To Do / In Progress / Blocked / Done)
-- [ ] Assign an item to a team member
-- [ ] Shared dashboard shows all items, sorted by status and due date
-- [ ] Activity feed shows recent changes across the team
-- [ ] Seed data loads on first visit — no login required to see the app
-- [ ] All creates/edits persist to the database and reflect immediately
+- [ ] Create a work record with title, description, status, assignee, due date
+- [ ] View all records in a shared dashboard (no login required in v1)
+- [ ] Edit any field on a record; change persists to DB
+- [ ] Advance record status through defined stages (To Do → In Progress → Done)
+- [ ] Delete (soft) a record with confirmation
+- [ ] Every write action appends an activity entry
+- [ ] Dashboard shows loading, empty, error, and populated states correctly
+- [ ] 4 seed demo records visible on first load
 
 ## Non-Goals (v1)
-- Email or Slack notifications
-- Multiple teams / workspaces
-- File attachments
-- Time tracking
+- User login / authentication
+- Per-user data isolation
+- AI suggestions
+- External integrations (Slack, email)
 - Mobile-native app
-- Public-facing pages
 
 ## Success Criteria
-A team member opens the app, creates a new work item titled "Weekly vendor invoice check", sets status to In Progress, assigns it to a colleague, and every other team member refreshing the dashboard sees it appear instantly with the correct assignee and status — no spreadsheet involved.
+A team member opens the dashboard, creates a new work record assigned to a colleague, advances its status to In Progress, and a second team member on a different browser sees the updated record and activity entry — all without any login, within 60 seconds of first load.

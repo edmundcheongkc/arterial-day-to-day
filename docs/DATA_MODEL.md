@@ -1,36 +1,60 @@
 # Data Model — Arterial Day-to-Day
 
-## work_items
+## team_members
 | Field | Type | Notes |
 |---|---|---|
 | id | uuid PK | gen_random_uuid() |
-| user_id | uuid nullable | owner (set at lock-down) |
-| title | text not null | |
-| description | text | |
-| status | text not null | 'todo'\|'in_progress'\|'blocked'\|'done' |
-| assignee_name | text | free-text for v1 |
-| due_date | date | |
-| priority_score | numeric | AI field — see below |
-| priority_source | text | e.g. 'rule_based_v1' |
-| priority_confidence | numeric | 0–1 |
-| priority_review_status | text | default 'unreviewed' |
-| created_at | timestamptz | default now() |
+| user_id | uuid | nullable; linked at lock-down sprint |
+| display_name | text | not null |
+| email | text | not null |
+| role | text | 'viewer' / 'editor' / 'admin'; default 'editor' |
+| created_at | timestamptz | not null, default now() |
 
-## activity_logs
+## work_records
 | Field | Type | Notes |
 |---|---|---|
 | id | uuid PK | |
-| user_id | uuid nullable | |
-| work_item_id | uuid | FK → work_items.id |
-| action | text | 'created'\|'status_changed'\|'edited'\|'deleted' |
-| previous_value | jsonb | snapshot before change |
-| new_value | jsonb | snapshot after change |
-| actor_name | text | display name for v1 |
-| created_at | timestamptz | default now() |
+| user_id | uuid | nullable |
+| title | text | not null |
+| description | text | |
+| status | text | 'to_do' / 'in_progress' / 'done' / 'blocked' |
+| assigned_to | uuid | FK → team_members.id |
+| due_date | date | |
+| is_deleted | boolean | soft-delete flag, default false |
+| ai_status_suggestion | text | AI-generated field |
+| ai_status_suggestion_source | text | model + prompt version |
+| ai_status_suggestion_confidence | numeric | 0–1 |
+| ai_status_suggestion_review_status | text | 'unreviewed' / 'approved' / 'dismissed' |
+| created_at | timestamptz | |
 
-## Relationships
-- `activity_logs.work_item_id` → `work_items.id`
+## activities
+| Field | Type | Notes |
+|---|---|---|
+| id | uuid PK | |
+| user_id | uuid | nullable |
+| record_id | uuid | FK → work_records.id |
+| actor_name | text | display name at time of action |
+| action | text | 'record_created' / 'status_changed' / 'field_updated' / 'record_deleted' |
+| detail | jsonb | e.g. `{"from":"to_do","to":"in_progress"}` |
+| created_at | timestamptz | |
+
+## audit_logs
+| Field | Type | Notes |
+|---|---|---|
+| id | uuid PK | |
+| user_id | uuid | nullable |
+| actor_name | text | |
+| table_name | text | |
+| row_id | uuid | |
+| action | text | 'insert' / 'update' / 'delete' |
+| before_state | jsonb | |
+| after_state | jsonb | |
+| created_at | timestamptz | |
 
 ## RLS
-- v1: permissive read + write for all (demo-first)
-- Lock-down sprint: owner-scoped policies using `auth.uid() = user_id`
+- v1: permissive read + write for all tables (demo-first)
+- Sprint 3: replaced with `auth.uid() = user_id` owner policies
+
+## Relationships
+`work_records.assigned_to` → `team_members.id`
+`activities.record_id` → `work_records.id`

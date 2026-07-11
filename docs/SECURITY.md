@@ -1,25 +1,27 @@
 # Security — Arterial Day-to-Day
 
-## Secrets
-- `SUPABASE_SERVICE_ROLE_KEY` lives only in Vercel server-side env; never sent to the browser
-- Client uses `NEXT_PUBLIC_SUPABASE_ANON_KEY` (safe for public) with RLS as the guard
-- No secrets in `.env.local` committed to repo
+## Secret Handling
+- `SUPABASE_SERVICE_ROLE_KEY` and `OPENAI_API_KEY` live in Vercel environment variables only
+- Only server-side API routes access the service role key — never the browser client
+- Public Supabase anon key is the only credential in frontend code
 
-## Permission Model (v1 → lock-down)
-| Role | Can do |
-|---|---|
-| Anonymous (demo) | Read all items, read activity feed |
-| Contributor | Create + edit own items, update any status |
-| Lead | All contributor actions + delete items + purge logs |
-
-**v1 (demo):** Supabase RLS policies are permissive (`using (true)`) — safe for internal demo with no sensitive data.
-**Lock-down sprint:** Replace with `auth.uid() = user_id` owner policies; add role check middleware in Next.js.
+## Permission Model
+**v1 (demo):** Permissive RLS — all reads and writes open; no login required.
+**Sprint 3 (lock-down):**
+- RLS policies replaced: `auth.uid() = user_id` for all owned tables
+- `role` field on `team_members` enforced in Next.js middleware and API routes
+- Viewers: read-only; Editors: create/edit records; Admins: add/remove members, approve AI actions
 
 ## Approved Tools Rule
-Agent actions use only named, scoped tools (`tool_score_priority`, `tool_flag_overdue`). No `run_any` or `eval` patterns permitted.
+- Agent may only call functions listed in `AGENTIC_LAYER.md`
+- No `run_any`, `eval`, or raw SQL execution from agent context
+- Every tool call is logged in `audit_logs` before the action fires
 
 ## Audit Principle
-Every create, update, delete, and agent action writes a row to `activity_logs` with actor, timestamp, before/after values. Logs are append-only; deletion of logs requires lead role and is recorded.
+- Every write to `work_records`, `team_members`, or `activities` produces an `audit_logs` row
+- Audit logs are append-only — no update or delete permitted (enforced by RLS: no `update`/`delete` policy on `audit_logs`)
+- AI-generated field changes store `source`, `confidence`, and `review_status` before any value is applied
 
-## Stop & Get Help
-Any change touching auth, payments, or bulk data deletion must be reviewed by a human before deployment.
+## Stop Points
+- Payments, legal data, or PII at scale: stop and get a human before proceeding
+- Any bulk-delete or export operation: human approval required, not agentic

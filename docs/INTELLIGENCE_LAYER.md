@@ -1,37 +1,39 @@
 # Intelligence Layer — Arterial Day-to-Day
 
-## Messy Inputs
-- Free-text descriptions with no consistent format
-- Due dates sometimes missing
-- Status updates buried in chat messages
+## Messy Inputs (what the team logs today)
+- Freeform status notes in chat
+- Spreadsheet rows with inconsistent status labels
+- Verbal handoffs with no written record
 
-## Auto-Structure (v1 rule-based, no LLM required)
+## Auto-Structure Target
+Every work record must resolve to:
 ```json
 {
-  "priority_score": 0.85,
-  "priority_source": "rule_based_v1",
-  "priority_confidence": 0.9,
-  "priority_review_status": "unreviewed",
-  "rules_fired": ["overdue", "blocked_status"]
+  "title": "Q3 Vendor Reconciliation",
+  "status": "in_progress",
+  "assigned_to": "<team_member_id>",
+  "due_date": "2025-08-10",
+  "ai_status_suggestion": "blocked",
+  "ai_status_suggestion_source": "gpt-4o / prompt-v1",
+  "ai_status_suggestion_confidence": 0.82,
+  "ai_status_suggestion_review_status": "unreviewed"
 }
 ```
 
-## Scoring Rules (v1)
-| Rule | Score bump |
-|---|---|
-| Due date is past today | +0.4 |
-| Status = 'blocked' | +0.3 |
-| No assignee set | +0.2 |
-| Due within 2 days | +0.2 |
-Scores clamp to 0–1. Items ranked by score descending on dashboard.
-
 ## Events to Track
-- `work_item.created`
-- `work_item.status_changed`
-- `work_item.overdue` (computed at query time)
-- `work_item.unassigned`
+- Record age since last status change (days)
+- Number of status changes total
+- Assignee workload (open record count)
+- Days until due_date
+
+## Scoring Rules (v1 — rule-based, no model needed)
+- **Stall score:** days since last update ÷ expected cycle time → flag if > 1.5×
+- **Overdue flag:** due_date < today AND status ≠ 'done'
+- **Load score:** count of open records per assignee
+
+## What Gets Ranked
+- Records on dashboard sorted by: overdue first, then stall score desc, then due_date asc
 
 ## v1 vs Later
-**v1:** Rule-based priority score, overdue flag, blocked flag
-**Next:** LLM-suggested description clean-up, auto-tag by work type
-**Later:** Trend analysis — which items recur, who is most blocked
+**v1:** Rule-based stall flag and overdue badge only — no LLM calls.
+**Later:** LLM reads record title + description + history → suggests next status; stored with confidence + review_status; team lead approves before any change is applied.
