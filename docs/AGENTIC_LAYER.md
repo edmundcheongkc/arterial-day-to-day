@@ -2,32 +2,37 @@
 
 ## Risk Levels & Actions
 
-### Low — auto-execute (no approval)
-- `score_priority` — recalculate priority score on save
-- `flag_overdue` — mark items past due date
-- `summarise_activity` — generate daily digest text from activity_logs
+### Low — Auto (no approval needed)
+- Summarise a record's activity history into a one-line note
+- Tag a record as 'stalled' based on rule-based stall score
+- Auto-sort dashboard by urgency score
 
-### Medium — show draft, one-click approve
-- `suggest_assignee` — propose an assignee based on past patterns
-- `bulk_status_update` — move all Done items to an archive view
+### Medium — Light Approval (team lead reviews before apply)
+- Suggest a status change based on record age and description
+- Draft a weekly ops summary from all record activity
+- Reassign a record when assignee has >N open items (draft only)
 
-### High — explicit approval required
-- `send_digest_notification` — post summary to a channel (future)
+### High — Always Approval (explicit confirm required)
+- Send a Slack/email nudge to an assignee about a stalled record
+- Bulk-update status on multiple records
 
-### Critical — human only, never automated
-- `delete_work_item` — permanent delete (must be intentional UI action)
-- `purge_activity_logs` — irreversible, requires lead role
+### Critical — Human Only (never agentic)
+- Hard-delete any record or activity row
+- Export or exfiltrate full dataset
+- Modify audit_logs
 
-## Named Tools (v1)
-- `tool_score_priority(work_item_id)` — reads item, writes priority fields
-- `tool_flag_overdue()` — batch scan, updates flags
+## Named Tools (approved list)
+- `summarise_record_history(record_id)` — low risk, auto
+- `suggest_status_change(record_id)` — medium, requires approval
+- `draft_weekly_summary()` — medium, requires approval
+- `flag_stalled_records()` — low, auto (rule-based, no LLM)
 
-## Audit Log Fields (activity_logs)
-`id, work_item_id, action, actor_name, previous_value, new_value, created_at`
+## Approval Flow
+Draft → surfaced in Review Queue UI → team lead approves/dismisses → action fires → audit_log row written
 
-## Agent Permissions
-Agent inherits the calling user's role. No agent action may exceed contributor permissions without lead approval. All actions write to `activity_logs`.
+## Audit Log Fields (every agent action)
+`actor_name`, `tool_name`, `record_id`, `before_state`, `after_state`, `approved_by`, `approved_at`, `created_at`
 
 ## v1 vs Later
-**v1:** Rule-based scoring + overdue flagging only
-**Later:** LLM draft suggestions behind approval UI
+**v1:** No agentic actions — rule-based flags only.
+**Sprint 4:** `suggest_status_change` + review queue UI.

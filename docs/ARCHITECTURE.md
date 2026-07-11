@@ -2,26 +2,27 @@
 
 ## Stack
 - **Frontend:** Next.js (App Router) on Vercel
-- **Database + Auth:** Supabase (Postgres + RLS + Realtime)
-- **Styling:** Tailwind CSS
+- **Database + API:** Supabase (Postgres + RLS + Realtime)
+- **Auth (Sprint 3):** Supabase Auth — added after core works
+- **AI (Sprint 4):** OpenAI via server-side API route only
 
-## Build Order
-**Now:** DB schema → work item CRUD → status updates → shared dashboard → activity feed → seed demo data
-**Next:** Login/signup → member roles enforcement → per-user ownership (RLS lock-down)
-**Later:** Smart prioritisation suggestions, recurring item templates, summary digest
+## Build Sequence
+**Now:** DB schema → work record CRUD → shared dashboard → activity feed
+**Next:** Auth + RLS lock-down → role enforcement → filters
+**Later:** AI status suggestions → stall detection → export
 
-## Key Action Flow — "Log a work item"
-1. Team member fills in the new-item form (title, status, assignee, due date)
-2. Form POSTs to a Next.js Server Action
-3. Server Action inserts a row into `work_items` and writes an `activity_logs` entry
-4. Supabase Realtime broadcasts the change
-5. All open dashboard sessions receive the update and re-render the item list
-6. Activity feed shows the new entry at the top
+## Key User Action — "Log a work record and everyone sees it"
+1. Team member fills Create Record form in the browser
+2. Next.js API route validates input server-side
+3. Supabase insert writes to `work_records`; activity row written in same transaction
+4. Supabase Realtime pushes the new row to all connected dashboards
+5. Every client re-renders the record list with the new item and status badge
+6. Audit log row written with before/after state
 
 ## Layer Plan
-1. **Data layer:** tables, constraints, RLS policies, seed rows — truth lives here
-2. **App logic:** CRUD actions, status machine, role checks in server code
-3. **Smart features:** auto-priority scoring, overdue flagging, digest summaries (added after core is stable)
+1. **Data layer** — tables, constraints, RLS policies (truth lives here)
+2. **App logic** — Next.js server actions/API routes enforce business rules (status transitions, soft-delete)
+3. **Smart features** — AI suggestions sit on top; removing them leaves the app fully functional
 
 ## Core Without AI
-The app is fully operational with AI off. Smart features are additive overlays on top of stable CRUD.
+All CRUD, status transitions, activity feed, and dashboard work with zero AI calls. AI is additive only.

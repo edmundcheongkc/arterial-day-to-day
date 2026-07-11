@@ -1,65 +1,68 @@
 # Tasks & Sprints — Arterial Day-to-Day
 
-## Sprint 1 — DB + Core Work Item Engine
-**Goal:** Schema live, CRUD working, seed data visible without login.
-- [ ] Write and apply migration SQL (work_items, activity_logs, seed rows)
-- [ ] Build work item list page — shows all items, 5 states (loading/empty/partial/error/ready)
-- [ ] Build new-item form — title, status, assignee, due date
-- [ ] Wire create → Supabase insert → activity_log entry
-- [ ] Build edit form — update any field, writes activity_log
-- [ ] Status dropdown — enforces allowed values (todo/in_progress/blocked/done)
-- [ ] Delete button (lead-only in UI copy, permissive for now) → soft confirmation
-- [ ] Seed demo rows visible on first load (no login wall)
+## Sprint 1 — DB + Core Record Engine
+**Goal:** The one core action works end-to-end: create, view, edit, delete, change status — all persisted, no login wall.
 
-**Definition of Done:** A new item submitted via the form appears in the list immediately; the activity log shows the creation event; deleting an item removes it from the list — all verified by manual test steps in TEST_PLAN.md.
+- [ ] Apply migration SQL (all tables + seed data)
+- [ ] `/dashboard` page: full record list, status badges, assignee chips — no login required
+- [ ] Create Record form: title, description, status, assigned_to, due_date → insert to DB
+- [ ] Edit Record modal: all fields editable → update in DB
+- [ ] Delete Record (soft): confirmation dialog → sets `is_deleted=true` → removed from list
+- [ ] Status pill click → cycle status → DB update → optimistic UI update
+- [ ] Activity row written on every create / edit / status-change
+- [ ] Dashboard: loading skeleton, empty state copy, error banner
+- [ ] Verify 4 seed records render on cold load with no auth
+
+**Definition of Done:** A tester opens `/dashboard` in an incognito window, creates a record, changes its status, and sees the activity entry — all without logging in. A second incognito window reloads and sees the same record.
 
 ---
 
-## Sprint 2 — Dashboard + Activity Feed ✦ v1 functional milestone
-**Goal:** Shared operational view is usable as the team's daily driver.
-- [ ] Dashboard: items grouped by status column (Kanban-lite) with due date + assignee
-- [ ] Priority score calculated on save (rule-based: overdue, blocked, unassigned)
-- [ ] Overdue items visually flagged
-- [ ] Activity feed panel — last 20 changes, newest first
-- [ ] Realtime subscription — new items/updates appear without refresh
-- [ ] Empty state copy for each column
-- [ ] Error boundary on dashboard with retry
+## Sprint 2 — Activity Feed, Team View & Filters ✦ **v1 functional milestone**
+**Goal:** The full shared workflow is usable by the real team.
 
-**Definition of Done:** Two browser tabs open; item created in tab A appears in tab B within 2 seconds; priority score reflects rules; overdue items are highlighted.
+- [ ] Activity feed panel: last 20 events, newest first, live via Supabase Realtime
+- [ ] Team Members page: list members; admin can add/remove
+- [ ] Filter bar: filter by status, assignee
+- [ ] Sort: overdue first, then by stall (no update in 3+ days), then due_date
+- [ ] Overdue badge on records past due_date
+- [ ] Audit log row written for every write action
+- [ ] Empty state for activity feed and filtered-empty record list
+
+**Definition of Done:** Two team members use the live URL simultaneously; one creates/updates a record; the other sees the change and the activity entry within 3 seconds without refreshing.
 
 ---
 
 ## Sprint 3 — Lock It Down (Auth + RLS)
-**Goal:** Real users log in; data is owner-scoped; demo mode removed.
-- [ ] Enable Supabase Auth (email/password)
-- [ ] Login + signup pages (not the homepage)
-- [ ] Replace permissive RLS policies with `auth.uid() = user_id` owner policies
-- [ ] Assign `user_id` on create for authenticated users
-- [ ] Role field on members (viewer/contributor/lead); enforce in server actions
-- [ ] Session-aware navigation (user name, sign out)
-- [ ] Remove or gate seed demo rows behind a dev flag
+**Goal:** Real users have accounts; data is owner-scoped; demo rows remain visible.
 
-**Definition of Done:** Unauthenticated request to create an item is rejected by RLS; user A cannot edit user B's items; login flow completes and lands on dashboard.
+- [ ] Supabase Auth: email/password signup + login pages
+- [ ] Replace permissive RLS policies with `auth.uid() = user_id` on all tables
+- [ ] Attach `user_id` to new writes post-auth
+- [ ] Role enforcement in API routes: viewers read-only, editors write, admins manage members
+- [ ] Redirect unauthenticated users to `/login` (first time this gate exists)
+- [ ] Verify cross-user isolation: user A cannot read user B's records
+
+**Definition of Done:** Two separate Supabase Auth accounts each see only their own records. Role restrictions block a 'viewer' account from creating a record.
 
 ---
 
-## Sprint 4 — Polish + Intelligence
-**Goal:** Daily-use quality; smart features layered on stable core.
-- [ ] Bulk status update with approval confirmation
-- [ ] Filter/search bar on dashboard
-- [ ] Daily digest summary (auto-generated from activity_logs)
-- [ ] LLM-assisted description suggestions (draft → approve pattern)
-- [ ] Recurring item templates
-- [ ] Audit log viewer for leads
+## Sprint 4 — Intelligence Layer
+**Goal:** AI surfaces suggestions; humans approve before anything changes.
 
-**Definition of Done:** Digest renders for previous day's activity; LLM suggestion shown as draft with accept/reject buttons; accepted suggestion writes to DB and logs the action.
+- [ ] Rule-based stall flag: records with no update in 3+ days get 'stalled' badge (no LLM)
+- [ ] `suggest_status_change` tool: server-side OpenAI call → stores suggestion + source + confidence + review_status
+- [ ] Review Queue UI: team lead sees pending suggestions, approves or dismisses
+- [ ] Approved suggestion → status updated → audit log row written with `approved_by`
+- [ ] `summarise_record_history` tool: auto (low-risk), one-line summary on record detail view
+
+**Definition of Done:** A stalled record surfaces a status suggestion; a team lead approves it; the status changes and the audit log shows the approval.
 
 ---
 
 ## Gantt (sprint → feature)
 ```
-Sprint 1 |---DB schema, CRUD, seed, item form, edit, delete
-Sprint 2 |---Dashboard, priority score, activity feed, realtime  ← v1 functional
-Sprint 3 |---Auth, RLS lock-down, roles
-Sprint 4 |---Filters, digest, LLM suggestions, templates
+Sprint 1:  DB schema, seed data, /dashboard, create/edit/delete/status record, activity writes
+Sprint 2:  Activity feed (realtime), team page, filters, sort/overdue, audit logs   ← v1 functional
+Sprint 3:  Auth, RLS lock-down, roles
+Sprint 4:  Stall detection, AI suggestions, review queue
 ```
