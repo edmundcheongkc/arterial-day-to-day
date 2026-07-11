@@ -1,17 +1,17 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { updateWorkItemStatus } from "@/lib/actions/work-items";
-import { STATUS_LABELS, WORK_ITEM_STATUSES, type WorkItemStatus } from "@/lib/types";
+import { updateWorkRecordStatus } from "@/lib/actions/work-records";
+import { STATUS_LABELS, WORK_RECORD_STATUSES, type WorkRecordStatus } from "@/lib/types";
 
-const STATUS_STYLES: Record<WorkItemStatus, string> = {
-  todo: "bg-neutral-100 text-neutral-700 border-neutral-300",
+const STATUS_STYLES: Record<WorkRecordStatus, string> = {
+  to_do: "bg-neutral-100 text-neutral-700 border-neutral-300",
   in_progress: "bg-blue-50 text-blue-700 border-blue-300",
   blocked: "bg-red-50 text-red-700 border-red-300",
   done: "bg-green-50 text-green-700 border-green-300",
 };
 
-export function StatusSelect({ id, status }: { id: string; status: WorkItemStatus }) {
+export function StatusSelect({ id, status }: { id: string; status: WorkRecordStatus }) {
   const [value, setValue] = useState(status);
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -22,12 +22,12 @@ export function StatusSelect({ id, status }: { id: string; status: WorkItemStatu
         value={value}
         disabled={isPending}
         onChange={(e) => {
-          const next = e.target.value as WorkItemStatus;
+          const next = e.target.value as WorkRecordStatus;
           const prev = value;
           setValue(next);
           setError(null);
           startTransition(async () => {
-            const result = await updateWorkItemStatus(id, next);
+            const result = await updateWorkRecordStatus(id, next);
             if (!result.ok) {
               setValue(prev);
               setError(result.error);
@@ -36,7 +36,7 @@ export function StatusSelect({ id, status }: { id: string; status: WorkItemStatu
         }}
         className={`text-xs font-medium border rounded-full px-2.5 py-1 cursor-pointer disabled:opacity-50 ${STATUS_STYLES[value]}`}
       >
-        {WORK_ITEM_STATUSES.map((s) => (
+        {WORK_RECORD_STATUSES.map((s) => (
           <option key={s} value={s}>
             {STATUS_LABELS[s]}
           </option>

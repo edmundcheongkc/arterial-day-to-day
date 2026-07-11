@@ -1,47 +1,76 @@
-export type WorkItemStatus = "todo" | "in_progress" | "blocked" | "done";
+export type WorkRecordStatus = "to_do" | "in_progress" | "blocked" | "done";
 
-export const WORK_ITEM_STATUSES: WorkItemStatus[] = [
-  "todo",
+export const WORK_RECORD_STATUSES: WorkRecordStatus[] = [
+  "to_do",
   "in_progress",
   "blocked",
   "done",
 ];
 
-export const STATUS_LABELS: Record<WorkItemStatus, string> = {
-  todo: "To Do",
+export const STATUS_LABELS: Record<WorkRecordStatus, string> = {
+  to_do: "To Do",
   in_progress: "In Progress",
   blocked: "Blocked",
   done: "Done",
 };
 
-export type WorkItem = {
+export function isWorkRecordStatus(value: string): value is WorkRecordStatus {
+  return (WORK_RECORD_STATUSES as string[]).includes(value);
+}
+
+export type WorkRecord = {
   id: string;
   user_id: string | null;
   title: string;
   description: string | null;
-  status: WorkItemStatus;
-  assignee_name: string | null;
+  status: WorkRecordStatus;
+  assigned_to: string | null;
   due_date: string | null;
-  priority_score: number;
-  priority_source: string;
-  priority_confidence: number;
-  priority_review_status: string;
+  is_deleted: boolean;
+  ai_status_suggestion: string | null;
+  ai_status_suggestion_source: string | null;
+  ai_status_suggestion_confidence: number | null;
+  ai_status_suggestion_review_status: string | null;
   created_at: string;
 };
 
-export type ActivityAction = "created" | "status_changed" | "edited" | "deleted";
+export type TeamMemberRole = "viewer" | "editor" | "admin";
 
-export type ActivityLog = {
+export type TeamMember = {
   id: string;
   user_id: string | null;
-  work_item_id: string;
-  action: ActivityAction;
-  previous_value: Record<string, unknown> | null;
-  new_value: Record<string, unknown> | null;
-  actor_name: string | null;
+  display_name: string;
+  email: string;
+  role: TeamMemberRole;
   created_at: string;
 };
 
-export function isWorkItemStatus(value: string): value is WorkItemStatus {
-  return (WORK_ITEM_STATUSES as string[]).includes(value);
-}
+export type ActivityAction =
+  | "record_created"
+  | "status_changed"
+  | "field_updated"
+  | "record_deleted";
+
+export type Activity = {
+  id: string;
+  user_id: string | null;
+  record_id: string | null;
+  actor_name: string;
+  action: ActivityAction;
+  detail: Record<string, unknown> | null;
+  created_at: string;
+};
+
+export type AuditAction = "insert" | "update" | "delete";
+
+export type AuditLog = {
+  id: string;
+  user_id: string | null;
+  actor_name: string;
+  table_name: string;
+  row_id: string;
+  action: AuditAction;
+  before_state: Record<string, unknown> | null;
+  after_state: Record<string, unknown> | null;
+  created_at: string;
+};

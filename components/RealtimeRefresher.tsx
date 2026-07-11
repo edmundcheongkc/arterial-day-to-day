@@ -4,20 +4,24 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
-// Server Actions already revalidatePath("/") for the tab that made the change.
-// This subscription is what makes OTHER open tabs pick up the change (the
-// "two tabs open, item appears without refresh" requirement in TEST_PLAN.md).
+// Server Actions already revalidatePath("/dashboard") for the tab that made
+// the change. This subscription is what makes OTHER open tabs pick up the
+// change (the "two tabs open, record appears without refresh" requirement
+// in TEST_PLAN.md).
 export function RealtimeRefresher() {
   const router = useRouter();
 
   useEffect(() => {
     const supabase = createClient();
     const channel = supabase
-      .channel("work-items-realtime")
-      .on("postgres_changes", { event: "*", schema: "public", table: "work_items" }, () => {
+      .channel("dashboard-realtime")
+      .on("postgres_changes", { event: "*", schema: "public", table: "work_records" }, () => {
         router.refresh();
       })
-      .on("postgres_changes", { event: "*", schema: "public", table: "activity_logs" }, () => {
+      .on("postgres_changes", { event: "*", schema: "public", table: "activities" }, () => {
+        router.refresh();
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "team_members" }, () => {
         router.refresh();
       })
       .subscribe();

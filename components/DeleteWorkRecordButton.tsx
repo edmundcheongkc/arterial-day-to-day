@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { deleteWorkItem } from "@/lib/actions/work-items";
+import { softDeleteWorkRecord } from "@/lib/actions/work-records";
 
-export function DeleteWorkItemButton({ id, title }: { id: string; title: string }) {
+export function DeleteWorkRecordButton({ id, title }: { id: string; title: string }) {
   const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -16,7 +16,7 @@ export function DeleteWorkItemButton({ id, title }: { id: string; title: string 
           disabled={isPending}
           onClick={() =>
             startTransition(async () => {
-              const result = await deleteWorkItem(id);
+              const result = await softDeleteWorkRecord(id);
               if (!result.ok) {
                 setError(result.error);
                 setConfirming(false);

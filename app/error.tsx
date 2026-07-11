@@ -10,7 +10,7 @@ export default function Error({
   return (
     <main className="min-h-screen flex items-center justify-center p-8">
       <div className="max-w-md text-center space-y-4">
-        <h1 className="text-xl font-semibold">Could not load items</h1>
+        <h1 className="text-xl font-semibold">Could not load records</h1>
         <p className="text-sm text-neutral-500">{error.message || "Something went wrong talking to the database."}</p>
         <button
           onClick={reset}
